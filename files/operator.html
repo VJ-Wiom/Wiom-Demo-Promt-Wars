@@ -3,702 +3,479 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wiom — Operator Panel</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<title>Wiom — Field Verification</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --card: #111118;
-    --border: #1f1f2e;
-    --accent: #7c6aff;
-    --green: #22d3a0;
-    --red: #ff4d6d;
-    --yellow: #fbbf24;
-    --text: #e2e2f0;
-    --muted: #4a4a6a;
-    --mono: 'DM Mono', monospace;
-    --sans: 'Syne', sans-serif;
-  }
+:root {
+  --bg: #04060a;
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,0.08);
+  --amber-glow: rgba(245,158,11,0.4);
+  --green: #10b981;
+  --green-dim: rgba(16,185,129,0.08);
+  --red: #ef4444;
+  --text: #f0f4ff;
+  --muted: #3d4a5c;
+  --border: rgba(255,255,255,0.06);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; background:var(--bg); color:var(--text); font-family:'JetBrains Mono',monospace; overflow:hidden; }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+#canvas { position:fixed; inset:0; z-index:0; opacity:0.35; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    overflow: hidden;
-  }
+.shell {
+  position:relative; z-index:2; height:100vh;
+  display:grid;
+  grid-template-columns:200px 1fr 200px;
+  grid-template-rows:64px 1fr 48px;
+}
 
-  /* Ambient background */
-  .bg-glow {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background:
-      radial-gradient(ellipse 60% 40% at 20% 50%, rgba(124,106,255,0.06) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 60% at 80% 30%, rgba(34,211,160,0.04) 0%, transparent 70%);
-  }
+/* TOP BAR */
+.topbar {
+  grid-column:1/-1; display:flex; align-items:center;
+  justify-content:space-between; padding:0 32px;
+  border-bottom:1px solid var(--border);
+}
+.brand { display:flex; align-items:center; gap:14px; }
+.brand-ring {
+  width:34px; height:34px; border:1.5px solid var(--amber);
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.brand-ring::after {
+  content:''; position:absolute; inset:4px; border-radius:50%;
+  background:radial-gradient(circle, rgba(245,158,11,0.25), transparent);
+  animation:breathe 3s ease-in-out infinite;
+}
+@keyframes breathe { 0%,100%{opacity:.5;transform:scale(.9)} 50%{opacity:1;transform:scale(1.1)} }
+.brand-ring svg { width:13px; height:13px; stroke:var(--amber); fill:none; stroke-width:2; position:relative; z-index:1; }
+.brand-name { font-family:'Orbitron',monospace; font-size:15px; font-weight:900; letter-spacing:6px; }
+.brand-name em { color:var(--amber); font-style:normal; }
+.topbar-right { display:flex; align-items:center; gap:28px; }
+.tp { display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
+.tp-k { font-size:8px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); }
+.tp-v { font-size:11px; color:var(--amber); font-weight:500; }
+.divv { width:1px; height:24px; background:var(--border); }
 
-  .bg-grid {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background-image:
-      linear-gradient(rgba(124,106,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(124,106,255,0.03) 1px, transparent 1px);
-    background-size: 32px 32px;
-  }
+/* SIDE */
+.side { padding:32px 24px; display:flex; flex-direction:column; justify-content:center; gap:24px; }
+.side-left { grid-column:1; border-right:1px solid var(--border); }
+.side-right { grid-column:3; border-left:1px solid var(--border); }
+.side-item { display:flex; flex-direction:column; gap:4px; }
+.side-k { font-size:8px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); }
+.side-v { font-family:'Orbitron',monospace; font-size:10px; color:var(--amber); letter-spacing:1px; line-height:1.4; }
+.side-sep { width:32px; height:1px; background:linear-gradient(90deg,var(--amber),transparent); }
+.side-right .side-sep { background:linear-gradient(90deg,transparent,var(--amber)); }
 
-  .panel {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 560px;
-  }
+/* CENTER */
+.center { grid-column:2; display:flex; flex-direction:column; justify-content:center; padding:20px 48px; gap:12px; }
 
-  /* Header */
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 32px;
-  }
+.mission { text-align:center; margin-bottom:4px; }
+.mission-sub { font-size:8px; letter-spacing:5px; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.mission-title {
+  font-family:'Orbitron',monospace; font-size:20px; font-weight:900; letter-spacing:3px;
+  background:linear-gradient(135deg,var(--text) 30%,var(--amber));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  line-height:1.25;
+}
 
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+/* STEPS */
+.steps { display:flex; flex-direction:column; gap:4px; }
+.step {
+  display:flex; align-items:flex-start; gap:14px;
+  padding:14px 18px; border:1px solid transparent; border-radius:10px;
+  background:transparent; transition:all .4s cubic-bezier(.16,1,.3,1);
+}
+.step.active { background:var(--amber-dim); border-color:rgba(245,158,11,.18); }
+.step.done { background:var(--green-dim); border-color:rgba(16,185,129,.15); }
+.step.error { background:rgba(239,68,68,.06); border-color:rgba(239,68,68,.2); }
 
-  .brand-mark {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, var(--accent), #a78bfa);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-  }
+.step-num {
+  width:26px; height:26px; border-radius:50%; border:1.5px solid var(--muted);
+  display:flex; align-items:center; justify-content:center; font-size:10px;
+  font-family:'Orbitron',monospace; font-weight:700; color:var(--muted);
+  flex-shrink:0; transition:all .4s;
+}
+.step.active .step-num { border-color:var(--amber); color:var(--amber); box-shadow:0 0 12px var(--amber-glow); }
+.step.done .step-num { background:var(--green); border-color:var(--green); color:#fff; }
+.step.error .step-num { border-color:var(--red); color:var(--red); }
 
-  .brand-name {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    color: var(--text);
-  }
+.step-body { flex:1; min-width:0; }
+.step-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:3px; }
+.step-label { font-family:'Orbitron',monospace; font-size:9px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); transition:color .3s; }
+.step.active .step-label { color:var(--amber); }
+.step.done .step-label { color:var(--green); }
+.step.error .step-label { color:var(--red); }
+.step-badge { font-size:7px; letter-spacing:2px; padding:3px 8px; border-radius:100px; border:1px solid var(--border); color:var(--muted); transition:all .3s; }
+.step.active .step-badge { border-color:rgba(245,158,11,.3); color:var(--amber); background:var(--amber-dim); }
+.step.done .step-badge { border-color:rgba(16,185,129,.3); color:var(--green); background:var(--green-dim); }
+.step.error .step-badge { border-color:rgba(239,68,68,.3); color:var(--red); }
+.step-detail { font-size:10px; color:var(--muted); line-height:1.5; transition:color .3s; }
+.step.active .step-detail { color:rgba(245,158,11,.65); }
+.step.done .step-detail { color:rgba(16,185,129,.65); }
+.step.error .step-detail { color:rgba(239,68,68,.65); }
 
-  .brand-sub {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-top: 1px;
-  }
+.wifi-info {
+  margin-top:8px; display:grid; grid-template-columns:1fr 1fr; gap:4px 16px;
+  padding:8px 12px; border:1px solid rgba(245,158,11,.12); border-radius:7px;
+  background:rgba(245,158,11,.04);
+}
+.wi { display:flex; flex-direction:column; gap:2px; }
+.wk { font-size:7px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+.wv { font-size:10px; color:var(--amber); }
 
-  .time-display {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--muted);
-    text-align: right;
-  }
+/* RESULT */
+.result { border-radius:10px; padding:14px 18px; display:none; animation:reveal .5s cubic-bezier(.16,1,.3,1) both; }
+@keyframes reveal { from{opacity:0;transform:scale(.96) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.result.success { display:block; background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(16,185,129,.02)); border:1px solid rgba(16,185,129,.2); }
+.result.fail { display:block; background:rgba(239,68,68,.05); border:1px solid rgba(239,68,68,.18); }
+.result-hd { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.result-ico { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+.result.success .result-ico { background:rgba(16,185,129,.15); }
+.result.fail .result-ico { background:rgba(239,68,68,.1); }
+.result-ttl { font-family:'Orbitron',monospace; font-size:11px; font-weight:700; letter-spacing:3px; }
+.result.success .result-ttl { color:var(--green); }
+.result.fail .result-ttl { color:var(--red); }
+.result-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.rc { display:flex; flex-direction:column; gap:2px; }
+.rk { font-size:7px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+.rv { font-size:11px; color:var(--text); }
+.rv.hl { color:var(--green); font-family:'Orbitron',monospace; font-size:10px; letter-spacing:1px; }
 
-  /* Steps */
-  .steps {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
+/* BUTTON */
+.btn-wrap { display:flex; flex-direction:column; gap:8px; }
+.btn-main {
+  width:100%; height:52px; background:none; border:none; cursor:pointer;
+  position:relative; border-radius:10px; overflow:hidden; transition:transform .15s;
+}
+.btn-main:hover:not(:disabled) { transform:translateY(-2px); }
+.btn-main:active:not(:disabled) { transform:translateY(0); }
+.btn-main:disabled { cursor:not-allowed; opacity:.45; }
+.btn-bg { position:absolute; inset:0; background:linear-gradient(135deg,#b45309,#d97706,#f59e0b,#fbbf24); border-radius:10px; }
+.btn-shine { position:absolute; inset:0; background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.16) 50%,transparent 60%); transform:translateX(-100%); }
+.btn-main:hover:not(:disabled) .btn-shine { animation:shine .5s ease forwards; }
+@keyframes shine { to{transform:translateX(100%)} }
+.btn-txt {
+  position:relative; z-index:1; font-family:'Orbitron',monospace; font-size:11px;
+  font-weight:800; letter-spacing:4px; color:#1a0800; text-transform:uppercase;
+  display:flex; align-items:center; justify-content:center; gap:10px; height:100%;
+}
+.btn-txt svg { width:14px; height:14px; stroke:#1a0800; fill:none; stroke-width:2.5; }
+.btn-reset {
+  width:100%; height:36px; background:transparent; border:1px solid var(--border);
+  border-radius:8px; color:var(--muted); font-family:'JetBrains Mono',monospace;
+  font-size:10px; letter-spacing:3px; cursor:pointer; transition:all .2s; display:none;
+  text-transform:uppercase;
+}
+.btn-reset:hover { border-color:var(--muted); color:var(--text); }
 
-  .step {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 20px 24px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.3s, transform 0.2s;
-  }
+/* LOG */
+.log {
+  background:rgba(0,0,0,.5); border:1px solid var(--border); border-radius:8px;
+  padding:10px 14px; max-height:70px; overflow-y:auto;
+}
+.log::-webkit-scrollbar { width:2px; }
+.log::-webkit-scrollbar-thumb { background:var(--muted); border-radius:10px; }
+.ll { font-size:9px; color:var(--muted); line-height:2; display:flex; gap:8px; }
+.ll .ts { color:rgba(245,158,11,.35); flex-shrink:0; }
+.ll.ok .msg { color:var(--green); }
+.ll.err .msg { color:var(--red); }
+.ll .msg { color:var(--muted); }
 
-  .step.active {
-    border-color: var(--accent);
-    transform: scale(1.01);
-  }
+/* BOTTOM */
+.bottombar {
+  grid-column:1/-1; border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between; padding:0 32px;
+}
+.bot-items { display:flex; align-items:center; gap:20px; }
+.bot-item { display:flex; align-items:center; gap:6px; font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+.dot { width:5px; height:5px; border-radius:50%; background:var(--muted); }
+.dot.on { background:var(--green); animation:pulseAnim 2s infinite; }
+.dot.warn { background:var(--amber); }
+@keyframes pulseAnim { 0%,100%{opacity:1} 50%{opacity:.35} }
 
-  .step.done {
-    border-color: rgba(34,211,160,0.3);
-  }
-
-  .step.error {
-    border-color: rgba(255,77,109,0.4);
-  }
-
-  .step-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-  }
-
-  .step-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .step-num {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--border);
-    border: 1px solid var(--muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    flex-shrink: 0;
-    transition: all 0.3s;
-  }
-
-  .step.active .step-num {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: white;
-  }
-
-  .step.done .step-num {
-    background: var(--green);
-    border-color: var(--green);
-    color: white;
-  }
-
-  .step.error .step-num {
-    background: var(--red);
-    border-color: var(--red);
-    color: white;
-  }
-
-  .step-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  .step-status {
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 4px 10px;
-    border-radius: 100px;
-    letter-spacing: 1px;
-  }
-
-  .status-waiting {
-    background: rgba(74,74,106,0.2);
-    color: var(--muted);
-    border: 1px solid var(--border);
-  }
-
-  .status-running {
-    background: rgba(124,106,255,0.12);
-    color: var(--accent);
-    border: 1px solid rgba(124,106,255,0.3);
-  }
-
-  .status-done {
-    background: rgba(34,211,160,0.1);
-    color: var(--green);
-    border: 1px solid rgba(34,211,160,0.3);
-  }
-
-  .status-error {
-    background: rgba(255,77,109,0.1);
-    color: var(--red);
-    border: 1px solid rgba(255,77,109,0.3);
-  }
-
-  .step-detail {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 8px;
-    line-height: 1.6;
-    min-height: 18px;
-    transition: color 0.3s;
-  }
-
-  .step.done .step-detail { color: var(--green); }
-  .step.error .step-detail { color: var(--red); }
-
-  /* WiFi step special */
-  .wifi-instruction {
-    margin-top: 12px;
-    background: rgba(124,106,255,0.06);
-    border: 1px solid rgba(124,106,255,0.15);
-    border-radius: 10px;
-    padding: 12px 16px;
-    display: none;
-  }
-
-  .wifi-instruction.visible { display: block; }
-
-  .wifi-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-family: var(--mono);
-    font-size: 12px;
-    margin-bottom: 4px;
-  }
-
-  .wifi-row:last-child { margin-bottom: 0; }
-
-  .wifi-key { color: var(--muted); }
-  .wifi-val { color: var(--accent); font-weight: 500; }
-
-  /* Main button */
-  .btn-wrap {
-    margin-top: 20px;
-  }
-
-  .btn-main {
-    width: 100%;
-    padding: 18px;
-    background: linear-gradient(135deg, var(--accent), #a78bfa);
-    border: none;
-    border-radius: 14px;
-    color: white;
-    font-family: var(--sans);
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: opacity 0.2s, transform 0.15s;
-  }
-
-  .btn-main:hover:not(:disabled) {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
-
-  .btn-main:active:not(:disabled) { transform: translateY(0); }
-
-  .btn-main:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .btn-main .btn-shimmer {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-    transform: translateX(-100%);
-  }
-
-  .btn-main:not(:disabled):hover .btn-shimmer {
-    animation: shimmer 0.6s ease;
-  }
-
-  @keyframes shimmer {
-    to { transform: translateX(100%); }
-  }
-
-  /* Result card */
-  .result-card {
-    margin-top: 12px;
-    border-radius: 16px;
-    padding: 20px 24px;
-    display: none;
-    animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1);
-  }
-
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .result-card.success {
-    display: block;
-    background: rgba(34,211,160,0.07);
-    border: 1px solid rgba(34,211,160,0.3);
-  }
-
-  .result-card.fail {
-    display: block;
-    background: rgba(255,77,109,0.07);
-    border: 1px solid rgba(255,77,109,0.3);
-  }
-
-  .result-title {
-    font-size: 18px;
-    font-weight: 800;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .result-card.success .result-title { color: var(--green); }
-  .result-card.fail .result-title { color: var(--red); }
-
-  .result-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .result-row {
-    display: flex;
-    justify-content: space-between;
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-  }
-
-  .result-row:last-child { border-bottom: none; }
-  .rkey { color: var(--muted); }
-  .rval { color: var(--text); }
-
-  /* Log */
-  .log-wrap {
-    margin-top: 12px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 16px;
-    max-height: 120px;
-    overflow-y: auto;
-  }
-
-  .log-title {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-
-  .log-line {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    line-height: 1.8;
-  }
-
-  .log-line.ok { color: var(--green); }
-  .log-line.err { color: var(--red); }
-  .log-line.info { color: var(--accent); }
-
-  /* Spinner */
-  .spinner {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border: 2px solid rgba(124,106,255,0.3);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    vertical-align: middle;
-    margin-right: 6px;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Pulse dot */
-  .pulse {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--green);
-    animation: pulse 1.5s ease-in-out infinite;
-    vertical-align: middle;
-    margin-right: 6px;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.7); }
-  }
-
-  /* Reset btn */
-  .btn-reset {
-    width: 100%;
-    margin-top: 8px;
-    padding: 12px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--muted);
-    font-family: var(--sans);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: none;
-  }
-
-  .btn-reset:hover {
-    border-color: var(--muted);
-    color: var(--text);
-  }
+/* SPINNER */
+.spin { display:inline-block; width:9px; height:9px; border:1.5px solid rgba(245,158,11,.3); border-top-color:var(--amber); border-radius:50%; animation:spinAnim .7s linear infinite; vertical-align:middle; margin-right:5px; }
+@keyframes spinAnim { to{transform:rotate(360deg)} }
 </style>
 </head>
 <body>
-<div class="bg-glow"></div>
-<div class="bg-grid"></div>
+<canvas id="canvas"></canvas>
+<div class="shell">
 
-<div class="panel">
-  <div class="header">
+  <!-- TOP BAR -->
+  <div class="topbar">
     <div class="brand">
-      <div class="brand-mark">📡</div>
-      <div>
-        <div class="brand-name">WIOM</div>
-        <div class="brand-sub">Operator Panel</div>
+      <div class="brand-ring">
+        <svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1.5" fill="currentColor" stroke="none"/></svg>
       </div>
+      <div class="brand-name">WI<em>O</em>M</div>
     </div>
-    <div class="time-display">
-      <div id="clock">--:--:--</div>
-      <div style="margin-top:2px">local time</div>
+    <div class="topbar-right">
+      <div class="tp"><div class="tp-k">Status</div><div class="tp-v" id="sys-status">STANDBY</div></div>
+      <div class="divv"></div>
+      <div class="tp"><div class="tp-k">Time</div><div class="tp-v" id="clock">--:--</div></div>
+      <div class="divv"></div>
+      <div class="tp"><div class="tp-k">Network</div><div class="tp-v">dhoni_0000</div></div>
     </div>
   </div>
 
-  <div class="steps">
+  <!-- LEFT -->
+  <div class="side side-left">
+    <div class="side-item"><div class="side-k">Protocol</div><div class="side-v">RSA-2048</div></div>
+    <div class="side-sep"></div>
+    <div class="side-item"><div class="side-k">Target IP</div><div class="side-v">172.16.2.1</div></div>
+    <div class="side-item"><div class="side-k">Port</div><div class="side-v">:5000</div></div>
+    <div class="side-sep"></div>
+    <div class="side-item"><div class="side-k">Method</div><div class="side-v">PUSH<br>TELEMETRY</div></div>
+  </div>
 
-    <!-- Step 1: WiFi -->
-    <div class="step" id="step-wifi">
-      <div class="step-top">
-        <div class="step-label">
-          <div class="step-num">1</div>
-          <div class="step-title">Connect to Bond WiFi</div>
+  <!-- CENTER -->
+  <div class="center">
+    <div class="mission">
+      <div class="mission-sub">Mission Control · Field Ops</div>
+      <div class="mission-title">ROUTER PRESENCE<br>VERIFICATION</div>
+    </div>
+
+    <div class="steps">
+      <div class="step" id="step-wifi">
+        <div class="step-num" id="icon-wifi">01</div>
+        <div class="step-body">
+          <div class="step-row">
+            <div class="step-label">Bond Network</div>
+            <div class="step-badge" id="badge-wifi">WAITING</div>
+          </div>
+          <div class="step-detail" id="detail-wifi">Confirm Bond WiFi connection before initiating</div>
+          <div class="wifi-info">
+            <div class="wi"><div class="wk">SSID</div><div class="wv">dhoni_0000</div></div>
+            <div class="wi"><div class="wk">Password</div><div class="wv">12345678</div></div>
+            <div class="wi"><div class="wk">IP Range</div><div class="wv">172.16.2.x</div></div>
+            <div class="wi"><div class="wk">Router</div><div class="wv">172.16.2.1</div></div>
+          </div>
         </div>
-        <div class="step-status status-waiting" id="wifi-status">WAITING</div>
       </div>
-      <div class="step-detail" id="wifi-detail">Confirm you are on dhoni_0000 before clicking RUN</div>
-      <div class="wifi-instruction visible">
-        <div class="wifi-row">
-          <span class="wifi-key">Network</span>
-          <span class="wifi-val">dhoni_0000</span>
+
+      <div class="step" id="step-services">
+        <div class="step-num" id="icon-services">02</div>
+        <div class="step-body">
+          <div class="step-row">
+            <div class="step-label">Services</div>
+            <div class="step-badge" id="badge-services">WAITING</div>
+          </div>
+          <div class="step-detail" id="detail-services">Flask · Node · Signature endpoint</div>
         </div>
-        <div class="wifi-row">
-          <span class="wifi-key">Password</span>
-          <span class="wifi-val">12345678</span>
-        </div>
-        <div class="wifi-row">
-          <span class="wifi-key">Expected IP</span>
-          <span class="wifi-val">172.16.2.x</span>
+      </div>
+
+      <div class="step" id="step-verify">
+        <div class="step-num" id="icon-verify">03</div>
+        <div class="step-body">
+          <div class="step-row">
+            <div class="step-label">Cryptographic Proof</div>
+            <div class="step-badge" id="badge-verify">WAITING</div>
+          </div>
+          <div class="step-detail" id="detail-verify">RSA signature · MAC binding · Partner registry</div>
         </div>
       </div>
     </div>
 
-    <!-- Step 2: Check Services -->
-    <div class="step" id="step-services">
-      <div class="step-top">
-        <div class="step-label">
-          <div class="step-num">2</div>
-          <div class="step-title">Check Services</div>
-        </div>
-        <div class="step-status status-waiting" id="services-status">WAITING</div>
+    <div class="result" id="result">
+      <div class="result-hd">
+        <div class="result-ico" id="result-ico"></div>
+        <div class="result-ttl" id="result-ttl"></div>
       </div>
-      <div class="step-detail" id="services-detail">Flask + Node + Router</div>
+      <div class="result-grid" id="result-grid"></div>
     </div>
 
-    <!-- Step 3: Verify -->
-    <div class="step" id="step-verify">
-      <div class="step-top">
-        <div class="step-label">
-          <div class="step-num">3</div>
-          <div class="step-title">Verify Router</div>
+    <div class="btn-wrap">
+      <button class="btn-main" id="btn-run" onclick="runAll()">
+        <div class="btn-bg"></div>
+        <div class="btn-shine"></div>
+        <div class="btn-txt">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          INITIATE VERIFICATION
         </div>
-        <div class="step-status status-waiting" id="verify-status">WAITING</div>
-      </div>
-      <div class="step-detail" id="verify-detail">RSA signature verification</div>
+      </button>
+      <button class="btn-reset" id="btn-reset" onclick="resetAll()">↺ &nbsp; RUN AGAIN</button>
     </div>
 
-  </div>
-
-  <!-- Buttons -->
-  <div class="btn-wrap">
-    <button class="btn-main" id="btn-run" onclick="runAll()">
-      <span class="btn-shimmer"></span>
-      RUN VERIFICATION
-    </button>
-    <button class="btn-reset" id="btn-reset" onclick="resetAll()">Run Again</button>
-  </div>
-
-  <!-- Result -->
-  <div class="result-card" id="result-card">
-    <div class="result-title" id="result-title"></div>
-    <div class="result-rows" id="result-rows"></div>
-  </div>
-
-  <!-- Log -->
-  <div class="log-wrap">
-    <div class="log-title">System Log</div>
-    <div id="log-lines">
-      <div class="log-line">Ready. Press RUN to start.</div>
+    <div class="log" id="log">
+      <div class="ll"><span class="ts">SYSTEM</span><span class="msg">Ready. Connect to dhoni_0000 then initiate.</span></div>
     </div>
   </div>
+
+  <!-- RIGHT -->
+  <div class="side side-right">
+    <div class="side-item"><div class="side-k">Partner</div><div class="side-v">BOND<br>PARTNER</div></div>
+    <div class="side-sep"></div>
+    <div class="side-item"><div class="side-k">MAC Address</div><div class="side-v">04:E8:B9<br>:0B:AE:90</div></div>
+    <div class="side-sep"></div>
+    <div class="side-item"><div class="side-k">Model</div><div class="side-v">TITANIUM<br>E20</div></div>
+    <div class="side-item"><div class="side-k">Year</div><div class="side-v">EARTH 2022</div></div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottombar">
+    <div class="bot-items">
+      <div class="bot-item"><div class="dot on"></div>Flask :8080</div>
+      <div class="bot-item"><div class="dot on"></div>Node :3001</div>
+      <div class="bot-item"><div class="dot warn" id="rdot"></div>Router :5000</div>
+    </div>
+    <div class="bot-item">WIOM FIELD OPS · v1.0 · 2026</div>
+  </div>
+
 </div>
 
 <script>
-  // Clock
-  function updateClock() {
-    document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+// Particle canvas
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H, pts = [];
+function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+function initPts() { pts = Array.from({length:55}, () => ({ x:Math.random()*W, y:Math.random()*H, vx:(Math.random()-.5)*.25, vy:(Math.random()-.5)*.25, r:Math.random()*1.2+.3, a:Math.random()*.4+.1 })); }
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  pts.forEach(p => {
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(245,158,11,${p.a})`; ctx.fill();
+  });
+  for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++) {
+    const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, d=Math.hypot(dx,dy);
+    if(d<110){ ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.strokeStyle=`rgba(245,158,11,${.05*(1-d/110)})`; ctx.lineWidth=.4; ctx.stroke(); }
   }
-  updateClock();
-  setInterval(updateClock, 1000);
+  requestAnimationFrame(draw);
+}
+resize(); initPts(); draw();
+window.addEventListener('resize',()=>{resize();initPts();});
 
-  const FLASK_URL = 'http://localhost:8080/verify';
-  const NODE_URL  = 'http://localhost:3001';
-  const ROUTER_NC = 'http://172.16.2.1:5000';
+// Clock
+setInterval(()=>{ document.getElementById('clock').textContent=new Date().toLocaleTimeString(); },1000);
+document.getElementById('clock').textContent=new Date().toLocaleTimeString();
 
-  function log(msg, type = '') {
-    const el = document.getElementById('log-lines');
-    const line = document.createElement('div');
-    line.className = 'log-line' + (type ? ' ' + type : '');
-    line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
-    el.appendChild(line);
-    el.parentElement.scrollTop = el.parentElement.scrollHeight;
+// Log
+function log(msg,type='') {
+  const el=document.getElementById('log');
+  const d=document.createElement('div');
+  d.className='ll'+(type?' '+type:'');
+  d.innerHTML=`<span class="ts">${new Date().toLocaleTimeString()}</span><span class="msg">${msg}</span>`;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+
+// Step state
+const IDS=['wifi','services','verify'];
+const NUMS=['01','02','03'];
+function setStep(id,state,detail,badge) {
+  const step=document.getElementById('step-'+id);
+  const icon=document.getElementById('icon-'+id);
+  const det=document.getElementById('detail-'+id);
+  const bdg=document.getElementById('badge-'+id);
+  step.className='step '+(state||'');
+  bdg.textContent=badge||'WAITING';
+  if(state==='done') icon.innerHTML='✓';
+  else if(state==='error') icon.innerHTML='✗';
+  else if(state==='active') icon.innerHTML='<span class="spin"></span>';
+  else icon.textContent=NUMS[IDS.indexOf(id)];
+  if(detail) det.innerHTML=detail;
+}
+
+// Result
+function showResult(ok,data) {
+  const el=document.getElementById('result');
+  el.className='result '+(ok?'success':'fail');
+  document.getElementById('result-ico').textContent=ok?'✓':'✗';
+  document.getElementById('result-ttl').textContent=ok?'VERIFIED':'FAILED';
+  document.getElementById('sys-status').textContent=ok?'VERIFIED':'FAILED';
+  document.getElementById('sys-status').style.color=ok?'var(--green)':'var(--red)';
+  document.getElementById('result-grid').innerHTML=ok
+    ?`<div class="rc"><div class="rk">Partner</div><div class="rv">${data.partner_name}</div></div>
+      <div class="rc"><div class="rk">ID</div><div class="rv">${data.partner_id}</div></div>
+      <div class="rc"><div class="rk">MAC</div><div class="rv" style="font-size:9px">${data.mac_address}</div></div>
+      <div class="rc"><div class="rk">Status</div><div class="rv hl">${data.status}</div></div>`
+    :`<div class="rc" style="grid-column:1/-1"><div class="rk">Reason</div><div class="rv" style="color:var(--red)">${data}</div></div>`;
+}
+
+function done() {
+  document.getElementById('btn-run').disabled=false;
+  document.getElementById('btn-reset').style.display='block';
+}
+
+async function delay(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+async function runAll() {
+  document.getElementById('btn-run').disabled=true;
+  document.getElementById('btn-reset').style.display='none';
+  document.getElementById('result').className='result';
+  document.getElementById('log').innerHTML='';
+  document.getElementById('sys-status').textContent='RUNNING';
+  document.getElementById('sys-status').style.color='var(--amber)';
+
+  // Step 1
+  setStep('wifi','done','Connected · dhoni_0000 · 172.16.2.x','CONNECTED');
+  log('Bond WiFi confirmed by operator','ok');
+  await delay(400);
+
+  // Step 2
+  setStep('services','active','<span class="spin"></span>Probing endpoints...','PROBING');
+  log('Checking Flask and Node...');
+  await delay(300);
+
+  let nodeOk=false, flaskOk=false, flaskData=null;
+  try { const r=await fetch('/health',{signal:AbortSignal.timeout(4000)}); if(r.ok)nodeOk=true; } catch{}
+  try { const r=await fetch('/proxy/verify',{signal:AbortSignal.timeout(6000)}); if(r.ok){flaskData=await r.json();flaskOk=true;} } catch{}
+
+  if(nodeOk&&flaskOk) {
+    setStep('services','done',`Flask <span style="color:var(--green)">✓</span> &nbsp;·&nbsp; Node <span style="color:var(--green)">✓</span>`,'ALL ONLINE');
+    log('Flask OK','ok'); log('Node OK','ok');
+    document.getElementById('rdot').className='dot on';
+  } else {
+    setStep('services','error',`Flask ${flaskOk?'<span style="color:var(--green)">✓</span>':'<span style="color:var(--red)">✗</span>'} &nbsp;·&nbsp; Node ${nodeOk?'<span style="color:var(--green)">✓</span>':'<span style="color:var(--red)">✗</span>'}`,'DEGRADED');
+    if(!nodeOk) log('Node unreachable','err');
+    if(!flaskOk) log('Flask unreachable','err');
+    showResult(false,'Services offline. Start Flask and Node, then retry.');
+    return done();
   }
 
-  function setStep(id, state, detail, statusText) {
-    const step = document.getElementById('step-' + id);
-    const statusEl = document.getElementById(id + '-status');
-    const detailEl = document.getElementById(id + '-detail');
+  // Step 3
+  setStep('verify','active','<span class="spin"></span>Verifying RSA signature...','VERIFYING');
+  log('Posting cryptographic proof...');
+  await delay(200);
 
-    step.className = 'step ' + state;
-
-    const map = {
-      active: ['status-running', statusText || 'RUNNING'],
-      done:   ['status-done',    statusText || 'DONE'],
-      error:  ['status-error',   statusText || 'ERROR'],
-      '':     ['status-waiting', statusText || 'WAITING'],
-    };
-    const [cls, txt] = map[state] || map[''];
-    statusEl.className = 'step-status ' + cls;
-    statusEl.textContent = txt;
-    if (detail) detailEl.innerHTML = detail;
-  }
-
-  function showResult(success, data) {
-    const card = document.getElementById('result-card');
-    const title = document.getElementById('result-title');
-    const rows = document.getElementById('result-rows');
-
-    card.className = 'result-card ' + (success ? 'success' : 'fail');
-
-    if (success) {
-      title.innerHTML = '<span class="pulse"></span> VERIFIED';
-      rows.innerHTML = `
-        <div class="result-row"><span class="rkey">Partner</span><span class="rval">${data.partner_name}</span></div>
-        <div class="result-row"><span class="rkey">ID</span><span class="rval">${data.partner_id}</span></div>
-        <div class="result-row"><span class="rkey">MAC</span><span class="rval">${data.mac_address}</span></div>
-        <div class="result-row"><span class="rkey">Status</span><span class="rval" style="color:var(--green);font-weight:600">${data.status}</span></div>
-      `;
+  try {
+    const body=JSON.stringify({mac:flaskData.mac,signature:flaskData.signature,timestamp:flaskData.timestamp});
+    const r=await fetch('/upload',{method:'POST',headers:{'Content-Type':'application/json'},body,signal:AbortSignal.timeout(6000)});
+    const result=await r.json();
+    if(result.success) {
+      setStep('verify','done',`${result.device.partner_name} · ${result.device.mac_address}`,'VERIFIED');
+      log('Signature valid','ok');
+      log('VERIFIED: '+result.device.partner_name,'ok');
+      showResult(true,result.device);
     } else {
-      title.innerHTML = '✕ FAILED';
-      rows.innerHTML = `<div class="result-row"><span class="rkey">Reason</span><span class="rval" style="color:var(--red)">${data}</span></div>`;
+      setStep('verify','error',result.reason||'Rejected','REJECTED');
+      log('Failed: '+(result.reason||'unknown'),'err');
+      showResult(false,result.reason||'Verification failed');
     }
+  } catch(e) {
+    setStep('verify','error',e.message,'ERROR');
+    log('Error: '+e.message,'err');
+    showResult(false,e.message);
   }
+  done();
+}
 
-  async function runAll() {
-    document.getElementById('btn-run').disabled = true;
-    document.getElementById('btn-reset').style.display = 'none';
-    document.getElementById('result-card').className = 'result-card';
-    document.getElementById('log-lines').innerHTML = '';
-
-    // ── STEP 1: WiFi confirmed manually ────────────────────
-    setStep('wifi', 'done', 'Connected to Bond WiFi (dhoni_0000)', 'CONNECTED');
-    log('WiFi confirmed by user', 'ok');
-
-    // ── STEP 2: Check Flask + Node only ────────────────────
-    setStep('services', 'active', '<span class="spinner"></span>Checking Flask + Node...', 'CHECKING');
-    log('Checking services...');
-
-    let nodeOk = false, flaskOk = false;
-    let flaskData = null;
-
-    try {
-      const r = await fetch('/health', { signal: AbortSignal.timeout(4000) });
-      if (r.ok) nodeOk = true;
-    } catch {}
-
-    try {
-      const r = await fetch('/proxy/verify', { signal: AbortSignal.timeout(6000) });
-      if (r.ok) { flaskData = await r.json(); flaskOk = true; }
-    } catch {}
-
-    const details = 'Flask ' + (flaskOk ? '✓' : '✗') + ' &nbsp;·&nbsp; Node ' + (nodeOk ? '✓' : '✗');
-
-    if (nodeOk && flaskOk) {
-      setStep('services', 'done', details, 'ALL OK');
-      log('Flask OK | Node OK', 'ok');
-    } else {
-      setStep('services', 'error', details + '<br>Start missing services and retry.', 'PARTIAL');
-      if (!nodeOk)  log('Node not running - start server.js', 'err');
-      if (!flaskOk) log('Flask not running - start bond_firmware.py', 'err');
-      showResult(false, 'Some services are down. Check PowerShell windows.');
-      document.getElementById('btn-reset').style.display = 'block';
-      document.getElementById('btn-run').disabled = false;
-      return;
-    }
-
-    // ── STEP 3: Verify ──────────────────────────────────────
-    setStep('verify', 'active', '<span class="spinner"></span>Verifying RSA signature...', 'VERIFYING');
-    log('Posting proof to backend...');
-
-    try {
-      const body = JSON.stringify({
-        mac: flaskData.mac,
-        signature: flaskData.signature,
-        timestamp: flaskData.timestamp
-      });
-      const r = await fetch('/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: AbortSignal.timeout(6000)
-      });
-      const result = await r.json();
-      if (result.success) {
-        setStep('verify', 'done', `${result.device.partner_name} verified at ${new Date().toLocaleTimeString()}`, 'VERIFIED');
-        log('VERIFIED: ' + result.device.partner_name + ' (' + result.device.mac_address + ')', 'ok');
-        showResult(true, result.device);
-      } else {
-        setStep('verify', 'error', result.reason || 'Verification failed', 'FAILED');
-        log('Verification failed: ' + (result.reason || 'unknown'), 'err');
-        showResult(false, result.reason || 'Verification failed');
-      }
-    } catch (e) {
-      setStep('verify', 'error', 'Request failed: ' + e.message, 'ERROR');
-      log('Error: ' + e.message, 'err');
-      showResult(false, e.message);
-    }
-
-    document.getElementById('btn-reset').style.display = 'block';
-    document.getElementById('btn-run').disabled = false;
-  }
-
-  function resetAll() {
-    ['wifi','services','verify'].forEach(id => setStep(id, '', null, 'WAITING'));
-    document.getElementById('result-card').className = 'result-card';
-    document.getElementById('log-lines').innerHTML = '<div class="log-line">Ready. Press RUN to start.</div>';
-    document.getElementById('btn-reset').style.display = 'none';
-  }
+function resetAll() {
+  IDS.forEach(id=>{ setStep(id,'',null,'WAITING'); });
+  document.getElementById('detail-wifi').textContent='Confirm Bond WiFi connection before initiating';
+  document.getElementById('detail-services').textContent='Flask · Node · Signature endpoint';
+  document.getElementById('detail-verify').textContent='RSA signature · MAC binding · Partner registry';
+  document.getElementById('result').className='result';
+  document.getElementById('log').innerHTML='<div class="ll"><span class="ts">SYSTEM</span><span class="msg">Ready. Initiate when on Bond WiFi.</span></div>';
+  document.getElementById('btn-reset').style.display='none';
+  document.getElementById('sys-status').textContent='STANDBY';
+  document.getElementById('sys-status').style.color='var(--amber)';
+  document.getElementById('rdot').className='dot warn';
+}
 </script>
 </body>
 </html>
