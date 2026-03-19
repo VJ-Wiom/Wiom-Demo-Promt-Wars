@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wiom — Netbox Verification Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f6fa;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid #e8eaed;
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #2563eb;
+    }
+
+    header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #111827;
+    }
+
+    .ws-indicator {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .ws-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #d1d5db;
+      transition: background 0.4s;
+    }
+
+    .ws-dot.connected { background: #22c55e; animation: pulse 2s infinite; }
+    .ws-dot.error     { background: #ef4444; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.45; }
+    }
+
+    /* ── MAIN ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    /* ── METRIC CARDS ── */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e8eaed;
+      border-radius: 12px;
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #9ca3af;
+    }
+
+    .card-value {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      color: #111827;
+      transition: color 0.3s;
+    }
+
+    .card.verified .card-value { color: #16a34a; }
+    .card.missing  .card-value { color: #dc2626; }
+
+    /* ── TABLE SECTION ── */
+    .table-section {
+      background: #ffffff;
+      border: 1px solid #e8eaed;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: 18px 24px 16px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .table-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .last-updated {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      padding: 11px 20px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6b7280;
+      background: #fafafa;
+      border-bottom: 1px solid #f3f4f6;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #f9fafb;
+      transition: background 0.2s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafafa; }
+
+    tbody td {
+      padding: 14px 20px;
+      font-size: 13.5px;
+      color: #374151;
+      white-space: nowrap;
+    }
+
+    .partner-name {
+      font-weight: 500;
+      color: #111827;
+    }
+
+    .partner-id {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12.5px;
+      color: #4b5563;
+    }
+
+    .mac {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #6b7280;
+      letter-spacing: 0.02em;
+    }
+
+    .timestamp {
+      font-size: 12.5px;
+      color: #9ca3af;
+    }
+
+    /* ── STATUS BADGE ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .badge.verified {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .badge.verified::before { background: #22c55e; }
+
+    .badge.missing {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .badge.missing::before { background: #ef4444; }
+
+    /* ── FLASH ANIMATION (MISSING → VERIFIED) ── */
+    @keyframes flashVerified {
+      0%   { background: #bbf7d0; }
+      60%  { background: #dcfce7; }
+      100% { background: transparent; }
+    }
+
+    tbody tr.flash-verified {
+      animation: flashVerified 1.6s ease-out forwards;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      padding: 48px 24px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 13.5px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      .metrics { grid-template-columns: 1fr; }
+      header h1 { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-dot"></div>
+    <h1>Wiom &mdash; Netbox Verification Dashboard</h1>
+  </div>
+  <div class="ws-indicator">
+    <div class="ws-dot" id="wsDot"></div>
+    <span id="wsLabel">Connecting…</span>
+  </div>
+</header>
+
+<main>
+  <!-- Metric cards -->
+  <div class="metrics">
+    <div class="card">
+      <div class="card-label">Total Devices</div>
+      <div class="card-value" id="metricTotal">—</div>
+    </div>
+    <div class="card verified">
+      <div class="card-label">Verified</div>
+      <div class="card-value" id="metricVerified">—</div>
+    </div>
+    <div class="card missing">
+      <div class="card-label">Missing</div>
+      <div class="card-value" id="metricMissing">—</div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-section">
+    <div class="table-header">
+      <h2>Device Registry</h2>
+      <span class="last-updated" id="lastUpdated">Never updated</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Partner Name</th>
+            <th>Partner ID</th>
+            <th>MAC Address</th>
+            <th>Status</th>
+            <th>Last Verified</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="5" class="empty">Loading devices…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+  const API_BASE  = 'http://localhost:3001';
+  const WS_URL    = 'ws://localhost:3001';
+
+  // Previous state snapshot — used to detect MISSING → VERIFIED flips
+  const prevStatus = {};
+
+  // ── RENDER ──────────────────────────────────────────────────────────────────
+  function render(devices) {
+    // Metrics
+    const total    = devices.length;
+    const verified = devices.filter(d => d.status === 'VERIFIED').length;
+    const missing  = total - verified;
+
+    document.getElementById('metricTotal').textContent    = total;
+    document.getElementById('metricVerified').textContent = verified;
+    document.getElementById('metricMissing').textContent  = missing;
+
+    // Last updated
+    const now = new Date();
+    document.getElementById('lastUpdated').textContent =
+      'Updated ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    // Table
+    const tbody = document.getElementById('tableBody');
+
+    if (devices.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No devices found.</td></tr>';
+      prevStatus = {};
+      return;
+    }
+
+    // Build rows — preserve existing TR elements where possible to enable animation
+    devices.forEach(device => {
+      const mac      = device.mac_address;
+      const wasFlip  = prevStatus[mac] === 'MISSING' && device.status === 'VERIFIED';
+
+      let row = tbody.querySelector(`tr[data-mac="${CSS.escape(mac)}"]`);
+
+      if (!row) {
+        row = document.createElement('tr');
+        row.dataset.mac = mac;
+        tbody.appendChild(row);
+      }
+
+      // Flash on flip
+      if (wasFlip) {
+        row.classList.remove('flash-verified');
+        // Force reflow so re-adding the class restarts the animation
+        void row.offsetWidth;
+        row.classList.add('flash-verified');
+        row.addEventListener('animationend', () => row.classList.remove('flash-verified'), { once: true });
+      }
+
+      const ts = device.timestamp
+        ? new Date(device.timestamp).toLocaleString([], {
+            month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+          })
+        : '—';
+
+      const badgeClass = device.status === 'VERIFIED' ? 'verified' : 'missing';
+
+      row.innerHTML = `
+        <td class="partner-name">${esc(device.partner_name)}</td>
+        <td class="partner-id">${esc(device.partner_id)}</td>
+        <td class="mac">${esc(mac)}</td>
+        <td><span class="badge ${badgeClass}">${esc(device.status)}</span></td>
+        <td class="timestamp">${ts}</td>
+      `;
+
+      prevStatus[mac] = device.status;
+    });
+
+    // Remove rows for MACs no longer in the list
+    const currentMacs = new Set(devices.map(d => d.mac_address));
+    tbody.querySelectorAll('tr[data-mac]').forEach(row => {
+      if (!currentMacs.has(row.dataset.mac)) row.remove();
+    });
+  }
+
+  function esc(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── INITIAL FETCH ────────────────────────────────────────────────────────────
+  fetch(`${API_BASE}/report`)
+    .then(r => r.json())
+    .then(data => render(data))
+    .catch(() => {
+      document.getElementById('tableBody').innerHTML =
+        '<tr><td colspan="5" class="empty">Could not reach server at ' + API_BASE + '</td></tr>';
+    });
+
+  // ── WEBSOCKET ────────────────────────────────────────────────────────────────
+  const wsDot   = document.getElementById('wsDot');
+  const wsLabel = document.getElementById('wsLabel');
+
+  function setWsState(state) {
+    wsDot.className = 'ws-dot ' + state;
+    wsLabel.textContent = state === 'connected' ? 'Live' :
+                          state === 'error'     ? 'Disconnected' : 'Connecting…';
+  }
+
+  function connectWS() {
+    let ws;
+    try { ws = new WebSocket(WS_URL); } catch (e) { setWsState('error'); return; }
+
+    ws.addEventListener('open',  ()    => setWsState('connected'));
+    ws.addEventListener('close', ()    => { setWsState('error'); setTimeout(connectWS, 4000); });
+    ws.addEventListener('error', ()    => setWsState('error'));
+    ws.addEventListener('message', e => {
+      try { render(JSON.parse(e.data)); } catch (_) {}
+    });
+  }
+
+  connectWS();
+</script>
+
+</body>
+</html>

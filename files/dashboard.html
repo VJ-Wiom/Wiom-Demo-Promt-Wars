@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wiom — Router Verification Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060810;
+    --surface: #0d1117;
+    --border: #1e2736;
+    --accent: #00f5a0;
+    --accent2: #00c3ff;
+    --danger: #ff4757;
+    --warning: #ffa502;
+    --text: #e8eaf0;
+    --muted: #4a5568;
+    --grid: rgba(0,245,160,0.03);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Glow orb */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(0,245,160,0.06) 0%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .logo-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,245,160,0.15), transparent);
+  }
+
+  .logo-icon svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 1.5;
+  }
+
+  .logo-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .logo-text h1 {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .logo-text span {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,245,160,0.08);
+    border: 1px solid rgba(0,245,160,0.2);
+    border-radius: 100px;
+    padding: 8px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.4;
+  }
+
+  .stat-card.verified-card::before { background: var(--accent); opacity: 1; }
+  .stat-card.missing-card::before { background: var(--danger); opacity: 1; }
+  .stat-card.total-card::before { background: var(--accent2); opacity: 1; }
+
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 12px;
+  }
+
+  .stat-number {
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .verified-card .stat-number { color: var(--accent); }
+  .missing-card .stat-number { color: var(--danger); }
+  .total-card .stat-number { color: var(--accent2); }
+
+  .stat-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* Section title */
+  .section-title {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 16px;
+  }
+
+  /* Device grid */
+  .devices-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+
+  .device-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .device-card.verified {
+    border-color: rgba(0,245,160,0.3);
+    background: linear-gradient(135deg, rgba(0,245,160,0.05) 0%, var(--surface) 60%);
+  }
+
+  .device-card.verified::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    box-shadow: inset 0 0 30px rgba(0,245,160,0.04);
+    pointer-events: none;
+  }
+
+  .device-card.missing {
+    border-color: rgba(255,71,87,0.2);
+  }
+
+  .device-card.just-verified {
+    animation: verifyFlash 0.8s ease-out;
+  }
+
+  @keyframes verifyFlash {
+    0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(0,245,160,0.6); }
+    50% { transform: scale(1.01); box-shadow: 0 0 40px 10px rgba(0,245,160,0.2); }
+    100% { transform: scale(1); box-shadow: none; }
+  }
+
+  .device-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .device-info h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .device-id {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+    flex-shrink: 0;
+  }
+
+  .status-badge.verified {
+    background: rgba(0,245,160,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(0,245,160,0.3);
+  }
+
+  .status-badge.missing {
+    background: rgba(255,71,87,0.08);
+    color: var(--danger);
+    border: 1px solid rgba(255,71,87,0.2);
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .verified .status-dot { background: var(--accent); animation: pulse 1.5s infinite; }
+  .missing .status-dot { background: var(--danger); opacity: 0.6; }
+
+  .device-mac {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    letter-spacing: 1px;
+  }
+
+  .device-timestamp {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .device-timestamp.hidden { visibility: hidden; }
+
+  /* Connection status */
+  .conn-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+  }
+
+  .conn-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+
+  .conn-dot.connected { background: var(--accent); animation: pulse 1.5s infinite; }
+  .conn-dot.disconnected { background: var(--danger); }
+
+  #conn-text { color: var(--muted); }
+
+  /* Loading state */
+  .loading-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+
+  .skeleton {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    height: 130px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%);
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  #last-update { color: var(--muted); }
+
+  /* Progress bar */
+  .progress-wrap {
+    margin-bottom: 40px;
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 8px;
+  }
+
+  .progress-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 100px;
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 0%;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <div class="logo-text">
+        <h1>Wiom</h1>
+        <span>Router Verification System</span>
+      </div>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+  </header>
+
+  <div class="conn-bar">
+    <div class="conn-dot" id="conn-dot"></div>
+    <span id="conn-text">Connecting to server...</span>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card total-card">
+      <div class="stat-label">Total Routers</div>
+      <div class="stat-number" id="total-count">—</div>
+      <div class="stat-sub">registered partners</div>
+    </div>
+    <div class="stat-card verified-card">
+      <div class="stat-label">Verified</div>
+      <div class="stat-number" id="verified-count">—</div>
+      <div class="stat-sub">physically present</div>
+    </div>
+    <div class="stat-card missing-card">
+      <div class="stat-label">Missing</div>
+      <div class="stat-number" id="missing-count">—</div>
+      <div class="stat-sub">not yet verified</div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Verification Progress</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+
+  <div class="section-title">Partner Routers</div>
+
+  <div id="devices-container">
+    <div class="loading-cards">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+  </div>
+
+  <footer>
+    <span>WIOM HACKATHON DEMO · 2026</span>
+    <span id="last-update">Waiting for data...</span>
+  </footer>
+</div>
+
+<script>
+  const WS_URL = 'ws://localhost:3001';
+  let ws;
+  let previousStates = {};
+
+  function connect() {
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+      document.getElementById('conn-dot').className = 'conn-dot connected';
+      document.getElementById('conn-text').textContent = 'Connected · localhost:3001';
+      document.getElementById('conn-text').style.color = 'var(--accent)';
+    };
+
+    ws.onmessage = (event) => {
+      const devices = JSON.parse(event.data);
+      renderDevices(devices);
+      updateStats(devices);
+      document.getElementById('last-update').textContent =
+        'Last update: ' + new Date().toLocaleTimeString();
+    };
+
+    ws.onclose = () => {
+      document.getElementById('conn-dot').className = 'conn-dot disconnected';
+      document.getElementById('conn-text').textContent = 'Disconnected · retrying...';
+      document.getElementById('conn-text').style.color = 'var(--danger)';
+      setTimeout(connect, 3000);
+    };
+
+    ws.onerror = () => ws.close();
+  }
+
+  function renderDevices(devices) {
+    const container = document.getElementById('devices-container');
+    const grid = document.createElement('div');
+    grid.className = 'devices-grid';
+
+    devices.forEach(device => {
+      const wasVerified = previousStates[device.mac_address];
+      const isVerified = device.status === 'VERIFIED';
+      const justVerified = !wasVerified && isVerified;
+
+      const card = document.createElement('div');
+      card.className = `device-card ${isVerified ? 'verified' : 'missing'}${justVerified ? ' just-verified' : ''}`;
+
+      const ts = device.timestamp
+        ? new Date(parseInt(device.timestamp) * 1000).toLocaleTimeString()
+        : null;
+
+      card.innerHTML = `
+        <div class="device-header">
+          <div class="device-info">
+            <h3>${device.partner_name}</h3>
+            <div class="device-id">${device.partner_id}</div>
+          </div>
+          <div class="status-badge ${isVerified ? 'verified' : 'missing'}">
+            <div class="status-dot"></div>
+            ${isVerified ? 'VERIFIED' : 'MISSING'}
+          </div>
+        </div>
+        <div class="device-mac">${device.mac_address}</div>
+        <div class="device-timestamp ${ts ? '' : 'hidden'}">
+          ⏱ Verified at ${ts || ''}
+        </div>
+      `;
+
+      grid.appendChild(card);
+      previousStates[device.mac_address] = isVerified;
+    });
+
+    container.innerHTML = '';
+    container.appendChild(grid);
+  }
+
+  function updateStats(devices) {
+    const total = devices.length;
+    const verified = devices.filter(d => d.status === 'VERIFIED').length;
+    const missing = total - verified;
+    const pct = total > 0 ? Math.round((verified / total) * 100) : 0;
+
+    document.getElementById('total-count').textContent = total;
+    document.getElementById('verified-count').textContent = verified;
+    document.getElementById('missing-count').textContent = missing;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = pct + '%';
+  }
+
+  connect();
+</script>
+</body>
+</html>

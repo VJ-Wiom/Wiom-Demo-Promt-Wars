@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wiom — Operator Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --card: #111118;
+    --border: #1f1f2e;
+    --accent: #7c6aff;
+    --green: #22d3a0;
+    --red: #ff4d6d;
+    --yellow: #fbbf24;
+    --text: #e2e2f0;
+    --muted: #4a4a6a;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  /* Ambient background */
+  .bg-glow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 50%, rgba(124,106,255,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 80% 30%, rgba(34,211,160,0.04) 0%, transparent 70%);
+  }
+
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(124,106,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,255,0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .panel {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .brand-name {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--text);
+  }
+
+  .brand-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .time-display {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  /* Steps */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+
+  .step.active {
+    border-color: var(--accent);
+    transform: scale(1.01);
+  }
+
+  .step.done {
+    border-color: rgba(34,211,160,0.3);
+  }
+
+  .step.error {
+    border-color: rgba(255,77,109,0.4);
+  }
+
+  .step-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .step-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--border);
+    border: 1px solid var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .step.active .step-num {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .step.done .step-num {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+  }
+
+  .step.error .step-num {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+  }
+
+  .step-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .step-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    letter-spacing: 1px;
+  }
+
+  .status-waiting {
+    background: rgba(74,74,106,0.2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .status-running {
+    background: rgba(124,106,255,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(124,106,255,0.3);
+  }
+
+  .status-done {
+    background: rgba(34,211,160,0.1);
+    color: var(--green);
+    border: 1px solid rgba(34,211,160,0.3);
+  }
+
+  .status-error {
+    background: rgba(255,77,109,0.1);
+    color: var(--red);
+    border: 1px solid rgba(255,77,109,0.3);
+  }
+
+  .step-detail {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.6;
+    min-height: 18px;
+    transition: color 0.3s;
+  }
+
+  .step.done .step-detail { color: var(--green); }
+  .step.error .step-detail { color: var(--red); }
+
+  /* WiFi step special */
+  .wifi-instruction {
+    margin-top: 12px;
+    background: rgba(124,106,255,0.06);
+    border: 1px solid rgba(124,106,255,0.15);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: none;
+  }
+
+  .wifi-instruction.visible { display: block; }
+
+  .wifi-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .wifi-row:last-child { margin-bottom: 0; }
+
+  .wifi-key { color: var(--muted); }
+  .wifi-val { color: var(--accent); font-weight: 500; }
+
+  /* Main button */
+  .btn-wrap {
+    margin-top: 20px;
+  }
+
+  .btn-main {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-family: var(--sans);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+
+  .btn-main:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .btn-main:active:not(:disabled) { transform: translateY(0); }
+
+  .btn-main:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-main .btn-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transform: translateX(-100%);
+  }
+
+  .btn-main:not(:disabled):hover .btn-shimmer {
+    animation: shimmer 0.6s ease;
+  }
+
+  @keyframes shimmer {
+    to { transform: translateX(100%); }
+  }
+
+  /* Result card */
+  .result-card {
+    margin-top: 12px;
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: none;
+    animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1);
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-card.success {
+    display: block;
+    background: rgba(34,211,160,0.07);
+    border: 1px solid rgba(34,211,160,0.3);
+  }
+
+  .result-card.fail {
+    display: block;
+    background: rgba(255,77,109,0.07);
+    border: 1px solid rgba(255,77,109,0.3);
+  }
+
+  .result-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .result-card.success .result-title { color: var(--green); }
+  .result-card.fail .result-title { color: var(--red); }
+
+  .result-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .result-row:last-child { border-bottom: none; }
+  .rkey { color: var(--muted); }
+  .rval { color: var(--text); }
+
+  /* Log */
+  .log-wrap {
+    margin-top: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .log-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .log-line {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .log-line.ok { color: var(--green); }
+  .log-line.err { color: var(--red); }
+  .log-line.info { color: var(--accent); }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(124,106,255,0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Pulse dot */
+  .pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 1.5s ease-in-out infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  /* Reset btn */
+  .btn-reset {
+    width: 100%;
+    margin-top: 8px;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: none;
+  }
+
+  .btn-reset:hover {
+    border-color: var(--muted);
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="bg-grid"></div>
+
+<div class="panel">
+  <div class="header">
+    <div class="brand">
+      <div class="brand-mark">📡</div>
+      <div>
+        <div class="brand-name">WIOM</div>
+        <div class="brand-sub">Operator Panel</div>
+      </div>
+    </div>
+    <div class="time-display">
+      <div id="clock">--:--:--</div>
+      <div style="margin-top:2px">local time</div>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <!-- Step 1: WiFi -->
+    <div class="step" id="step-wifi">
+      <div class="step-top">
+        <div class="step-label">
+          <div class="step-num">1</div>
+          <div class="step-title">Connect to Bond WiFi</div>
+        </div>
+        <div class="step-status status-waiting" id="wifi-status">WAITING</div>
+      </div>
+      <div class="step-detail" id="wifi-detail">Switch your WiFi to Bond's network</div>
+      <div class="wifi-instruction visible">
+        <div class="wifi-row">
+          <span class="wifi-key">Network</span>
+          <span class="wifi-val">dhoni_0000</span>
+        </div>
+        <div class="wifi-row">
+          <span class="wifi-key">Password</span>
+          <span class="wifi-val">12345678</span>
+        </div>
+        <div class="wifi-row">
+          <span class="wifi-key">Expected IP</span>
+          <span class="wifi-val">172.16.2.x</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Check Services -->
+    <div class="step" id="step-services">
+      <div class="step-top">
+        <div class="step-label">
+          <div class="step-num">2</div>
+          <div class="step-title">Check Services</div>
+        </div>
+        <div class="step-status status-waiting" id="services-status">WAITING</div>
+      </div>
+      <div class="step-detail" id="services-detail">Flask + Node + Router</div>
+    </div>
+
+    <!-- Step 3: Verify -->
+    <div class="step" id="step-verify">
+      <div class="step-top">
+        <div class="step-label">
+          <div class="step-num">3</div>
+          <div class="step-title">Verify Router</div>
+        </div>
+        <div class="step-status status-waiting" id="verify-status">WAITING</div>
+      </div>
+      <div class="step-detail" id="verify-detail">RSA signature verification</div>
+    </div>
+
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="result-card">
+    <div class="result-title" id="result-title"></div>
+    <div class="result-rows" id="result-rows"></div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-wrap">
+    <div class="log-title">System Log</div>
+    <div id="log-lines">
+      <div class="log-line">Ready. Press RUN to start.</div>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="btn-wrap">
+    <button class="btn-main" id="btn-run" onclick="runAll()">
+      <span class="btn-shimmer"></span>
+      RUN VERIFICATION
+    </button>
+    <button class="btn-reset" id="btn-reset" onclick="resetAll()">Run Again</button>
+  </div>
+</div>
+
+<script>
+  // Clock
+  function updateClock() {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  const FLASK_URL = 'http://localhost:8080/verify';
+  const NODE_URL  = 'http://localhost:3001';
+  const ROUTER_NC = 'http://172.16.2.1:5000';
+
+  function log(msg, type = '') {
+    const el = document.getElementById('log-lines');
+    const line = document.createElement('div');
+    line.className = 'log-line' + (type ? ' ' + type : '');
+    line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    el.appendChild(line);
+    el.parentElement.scrollTop = el.parentElement.scrollHeight;
+  }
+
+  function setStep(id, state, detail, statusText) {
+    const step = document.getElementById('step-' + id);
+    const statusEl = document.getElementById(id + '-status');
+    const detailEl = document.getElementById(id + '-detail');
+
+    step.className = 'step ' + state;
+
+    const map = {
+      active: ['status-running', statusText || 'RUNNING'],
+      done:   ['status-done',    statusText || 'DONE'],
+      error:  ['status-error',   statusText || 'ERROR'],
+      '':     ['status-waiting', statusText || 'WAITING'],
+    };
+    const [cls, txt] = map[state] || map[''];
+    statusEl.className = 'step-status ' + cls;
+    statusEl.textContent = txt;
+    if (detail) detailEl.innerHTML = detail;
+  }
+
+  function showResult(success, data) {
+    const card = document.getElementById('result-card');
+    const title = document.getElementById('result-title');
+    const rows = document.getElementById('result-rows');
+
+    card.className = 'result-card ' + (success ? 'success' : 'fail');
+
+    if (success) {
+      title.innerHTML = '<span class="pulse"></span> VERIFIED';
+      rows.innerHTML = `
+        <div class="result-row"><span class="rkey">Partner</span><span class="rval">${data.partner_name}</span></div>
+        <div class="result-row"><span class="rkey">ID</span><span class="rval">${data.partner_id}</span></div>
+        <div class="result-row"><span class="rkey">MAC</span><span class="rval">${data.mac_address}</span></div>
+        <div class="result-row"><span class="rkey">Status</span><span class="rval" style="color:var(--green);font-weight:600">${data.status}</span></div>
+      `;
+    } else {
+      title.innerHTML = '✕ FAILED';
+      rows.innerHTML = `<div class="result-row"><span class="rkey">Reason</span><span class="rval" style="color:var(--red)">${data}</span></div>`;
+    }
+  }
+
+  async function runAll() {
+    document.getElementById('btn-run').disabled = true;
+    document.getElementById('btn-reset').style.display = 'none';
+    document.getElementById('result-card').className = 'result-card';
+    document.getElementById('log-lines').innerHTML = '';
+
+    // ── STEP 1: Check WiFi ──────────────────────────────────
+    setStep('wifi', 'active', '<span class="spinner"></span>Checking network...', 'CHECKING');
+    log('Checking WiFi network...');
+
+    let onBondWifi = false;
+    try {
+      // no-cors bypasses CORS block — succeeds (opaque) if router is reachable
+      await fetch(ROUTER_NC, { mode: 'no-cors', signal: AbortSignal.timeout(4000) });
+      onBondWifi = true;
+    } catch {}
+
+    if (onBondWifi) {
+      setStep('wifi', 'done', 'Connected to Bond WiFi (172.16.2.x)', 'CONNECTED');
+      log('Bond WiFi confirmed - router reachable', 'ok');
+    } else {
+      setStep('wifi', 'error', 'Not on Bond WiFi. Connect to <b>dhoni_0000</b> and retry.', 'NOT FOUND');
+      log('Not on Bond WiFi or router unreachable', 'err');
+      showResult(false, 'Connect to dhoni_0000 (password: 12345678) and press Run Again');
+      document.getElementById('btn-reset').style.display = 'block';
+      document.getElementById('btn-run').disabled = false;
+      return;
+    }
+
+    // ── STEP 2: Check Services ──────────────────────────────
+    setStep('services', 'active', '<span class="spinner"></span>Checking Flask + Node + Router...', 'CHECKING');
+    log('Checking all services...');
+
+    let flaskOk = false, nodeOk = false, routerOk = onBondWifi;
+    let flaskData = null;
+
+    try {
+      const r = await fetch(FLASK_URL, { signal: AbortSignal.timeout(4000) });
+      if (r.ok) { flaskData = await r.json(); flaskOk = true; }
+    } catch {}
+
+    try {
+      const r = await fetch(NODE_URL + '/health', { signal: AbortSignal.timeout(4000) });
+      if (r.ok) nodeOk = true;
+    } catch {}
+
+    const allOk = flaskOk && nodeOk && routerOk;
+    const details = [
+      'Flask ' + (flaskOk ? '✓' : '✗'),
+      'Node ' + (nodeOk ? '✓' : '✗'),
+      'Router ' + (routerOk ? '✓' : '✗')
+    ].join(' &nbsp;·&nbsp; ');
+
+    if (allOk) {
+      setStep('services', 'done', details, 'ALL OK');
+      log('Flask OK | Node OK | Router OK', 'ok');
+    } else {
+      setStep('services', 'error', details + '<br>Start missing services and retry.', 'PARTIAL');
+      if (!flaskOk) log('Flask not running - start bond_firmware.py', 'err');
+      if (!nodeOk)  log('Node not running - start server.js', 'err');
+      showResult(false, 'Some services are down. Check the PowerShell windows.');
+      document.getElementById('btn-reset').style.display = 'block';
+      document.getElementById('btn-run').disabled = false;
+      return;
+    }
+
+    // ── STEP 3: Verify ──────────────────────────────────────
+    setStep('verify', 'active', '<span class="spinner"></span>Verifying RSA signature...', 'VERIFYING');
+    log('Posting proof to backend...');
+
+    try {
+      const body = JSON.stringify({
+        mac: flaskData.mac,
+        signature: flaskData.signature,
+        timestamp: flaskData.timestamp
+      });
+      const r = await fetch(NODE_URL + '/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: AbortSignal.timeout(6000)
+      });
+      const result = await r.json();
+      if (result.success) {
+        setStep('verify', 'done', `${result.device.partner_name} verified at ${new Date().toLocaleTimeString()}`, 'VERIFIED');
+        log('VERIFIED: ' + result.device.partner_name + ' (' + result.device.mac_address + ')', 'ok');
+        showResult(true, result.device);
+      } else {
+        setStep('verify', 'error', result.reason || 'Verification failed', 'FAILED');
+        log('Verification failed: ' + (result.reason || 'unknown'), 'err');
+        showResult(false, result.reason || 'Verification failed');
+      }
+    } catch (e) {
+      setStep('verify', 'error', 'Request failed: ' + e.message, 'ERROR');
+      log('Error: ' + e.message, 'err');
+      showResult(false, e.message);
+    }
+
+    document.getElementById('btn-reset').style.display = 'block';
+    document.getElementById('btn-run').disabled = false;
+  }
+
+  function resetAll() {
+    ['wifi','services','verify'].forEach(id => setStep(id, '', null, 'WAITING'));
+    document.getElementById('result-card').className = 'result-card';
+    document.getElementById('log-lines').innerHTML = '<div class="log-line">Ready. Press RUN to start.</div>';
+    document.getElementById('btn-reset').style.display = 'none';
+  }
+</script>
+</body>
+</html>
